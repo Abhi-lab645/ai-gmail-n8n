@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>n8n RSS Summarizer: Architecture & Deployment Guide</title>
+  <style>
+    @page {
+      margin: 20mm;
+      size: A4;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: #1e293b;
+      line-height: 1.6;
+      margin: 0;
+      padding: 0;
+      font-size: 14px;
+    }
+    h1 {
+      color: #0f172a;
+      font-size: 26px;
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: 10px;
+      margin-top: 0;
+    }
+    h2 {
+      color: #1e40af;
+      font-size: 20px;
+      margin-top: 28px;
+      border-bottom: 1px solid #cbd5e1;
+      padding-bottom: 6px;
+    }
+    h3 {
+      color: #334155;
+      font-size: 16px;
+      margin-top: 20px;
+    }
+    code, pre {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 12px;
+    }
+    pre {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 12px;
+      overflow-x: auto;
+    }
+    code {
+      background: #f1f5f9;
+      padding: 2px 5px;
+      border-radius: 4px;
+      color: #0f172a;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+      font-size: 13px;
+    }
+    th, td {
+      border: 1px solid #cbd5e1;
+      padding: 8px 12px;
+      text-align: left;
+    }
+    th {
+      background-color: #f1f5f9;
+      color: #0f172a;
+      font-weight: 600;
+    }
+    tr:nth-child(even) {
+      background-color: #f8fafc;
+    }
+    .badge {
+      display: inline-block;
+      padding: 3px 8px;
+      font-size: 11px;
+      font-weight: 600;
+      border-radius: 9999px;
+      background: #e0f2fe;
+      color: #0369a1;
+    }
+    .callout {
+      border-left: 4px solid #3b82f6;
+      background: #eff6ff;
+      padding: 12px 16px;
+      border-radius: 0 6px 6px 0;
+      margin: 16px 0;
+    }
+    .footer {
+      margin-top: 40px;
+      font-size: 11px;
+      color: #64748b;
+      text-align: center;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 12px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>n8n RSS Summarizer: Complete Deployment Guide</h1>
+  <p><strong>System Version:</strong> n8n 2.44.6 &bull; <strong>Environment:</strong> Docker Container &bull; <strong>Integration:</strong> OpenRouter & Google Sheets</p>
+
+  <div class="callout">
+    <strong>Executive Summary:</strong> This document describes the architecture, Docker deployment, configuration, and execution of the automated RSS feed summarizer that extracts articles from BBC News Technology, generates 2-sentence plain-English AI summaries using OpenRouter, and records them in Google Sheets.
+  </div>
+
+  <h2>1. Workflow Architecture</h2>
+  <p>The workflow consists of 6 interconnected nodes arranged sequentially with dedicated AI model routing:</p>
+  <ul>
+    <li><strong>Manual Trigger:</strong> Initiates on-demand workflow runs (or Schedule Trigger daily at 08:00 in scheduled variant).</li>
+    <li><strong>RSS Read:</strong> Queries RSS feed endpoint (<code>https://feeds.bbci.co.uk/news/technology/rss.xml</code>).</li>
+    <li><strong>Limit Node:</strong> Slices feed to the top 5 newest articles.</li>
+    <li><strong>Basic LLM Chain:</strong> Uses expression templating for 2-sentence summarization with automated retries (3 tries, 2000ms delay, continue on fail).</li>
+    <li><strong>OpenRouter Chat Model:</strong> Powered by <code>openrouter/free</code> routing to active free models.</li>
+    <li><strong>Google Sheets Node:</strong> Appends formatted rows (<code>Title</code>, <code>Link</code>, <code>Published</code>, <code>Summary</code>) into the spreadsheet.</li>
+  </ul>
+
+  <h2>2. Docker Deployment</h2>
+  <p>To run the n8n environment in Docker with data persistence:</p>
+
+  <h3>Command Line (Docker CLI)</h3>
+  <pre><code>docker run -d \
+  --name n8n \
+  -p 5678:5678 \
+  -e TZ=Asia/Kolkata \
+  -e GENERIC_TIMEZONE=Asia/Kolkata \
+  -v n8n-class_n8n_data:/home/node/.n8n \
+  docker.n8n.io/n8nio/n8n:latest</code></pre>
+
+  <h3>Docker Compose</h3>
+  <pre><code>services:
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    container_name: n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - TZ=Asia/Kolkata
+      - GENERIC_TIMEZONE=Asia/Kolkata
+    volumes:
+      - n8n-class_n8n_data:/home/node/.n8n</code></pre>
+
+  <h2>3. Importing and Running the Workflow</h2>
+  <pre><code># Import the workflow into the n8n container
+./scripts/import-workflow.sh
+
+# Run end-to-end execution headless from terminal
+docker exec -e N8N_RUNNERS_BROKER_PORT=5689 n8n n8n execute --id=jSTdUWRulww8JA2H</code></pre>
+
+  <h2>4. Production Troubleshooting</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Issue</th>
+        <th>Root Cause</th>
+        <th>Resolution</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Error 403: access_denied</strong></td>
+        <td>User email not listed under Test Users in Google Cloud OAuth consent screen.</td>
+        <td>Add developer/tester Google account under Google Cloud Console &rarr; OAuth consent screen &rarr; Test users.</td>
+      </tr>
+      <tr>
+        <td><strong>Service Disabled (Drive/Sheets)</strong></td>
+        <td>Google Sheets or Drive API not enabled on Google Cloud project.</td>
+        <td>Activate both APIs in Google Cloud Console API Library.</td>
+      </tr>
+      <tr>
+        <td><strong>Missing Document Parameter</strong></td>
+        <td>Spreadsheet not selected or empty ID.</td>
+        <td>Select the spreadsheet from dropdown or pass spreadsheet URL / ID into documentId parameter.</td>
+      </tr>
+      <tr>
+        <td><strong>columns.schema required</strong></td>
+        <td>n8n version 4.4+ requires column schema metadata.</td>
+        <td>Include schema definition array specifying Title, Link, Published, and Summary columns.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="footer">
+    n8n Automation Engineering &bull; Repository: Abhi-lab645/ai-gmail-n8n &bull; Generated October 2026
+  </div>
+
+</body>
+</html>
