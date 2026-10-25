@@ -1,0 +1,252 @@
+{
+  "name": "RSS Summarizer (Multi-Source Scheduled)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "triggerAtHour": 8,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "id": "b1b2c3d4-0001-4000-8000-000000000001",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        380,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  { json: { source: \"BBC Tech\", url: \"https://feeds.bbci.co.uk/news/technology/rss.xml\" } },\n  { json: { source: \"TechCrunch\", url: \"https://techcrunch.com/feed/\" } },\n  { json: { source: \"The Verge\", url: \"https://www.theverge.com/rss/index.xml\" } },\n  { json: { source: \"Wired\", url: \"https://www.wired.com/feed/rss\" } }\n];"
+      },
+      "id": "b1b2c3d4-0002-4000-8000-000000000002",
+      "name": "Feed Sources",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        580,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}"
+      },
+      "id": "b1b2c3d4-0003-4000-8000-000000000003",
+      "name": "RSS Read",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.2,
+      "position": [
+        780,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst countBySource = {};\nconst maxPerSource = 2;\nconst output = [];\n\nfor (const item of items) {\n  const data = item.json;\n  const link = data.link || \"\";\n  \n  let source = \"Tech News\";\n  if (link.includes(\"bbc.co.uk\") || link.includes(\"bbc.com\")) {\n    source = \"BBC Tech\";\n  } else if (link.includes(\"techcrunch.com\")) {\n    source = \"TechCrunch\";\n  } else if (link.includes(\"theverge.com\")) {\n    source = \"The Verge\";\n  } else if (link.includes(\"wired.com\")) {\n    source = \"Wired\";\n  }\n\n  countBySource[source] = (countBySource[source] || 0) + 1;\n  if (countBySource[source] <= maxPerSource) {\n    let snippet = (data.contentSnippet || data.content || data.title || \"\").trim();\n    snippet = snippet.replace(/<[^>]*>?/gm, \"\");\n    if (snippet.length > 500) {\n      snippet = snippet.slice(0, 500) + \"...\";\n    }\n\n    output.push({\n      json: {\n        source: source,\n        title: (data.title || \"Untitled\").trim(),\n        link: link,\n        pubDate: data.pubDate || data.isoDate || new Date().toUTCString(),\n        contentSnippet: snippet\n      }\n    });\n  }\n}\n\nreturn output;"
+      },
+      "id": "b1b2c3d4-0004-4000-8000-000000000004",
+      "name": "Format and Filter",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        980,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Summarize this article in 2 plain-English sentences. Highlight the main news impact.\n\nSource: {{ $json.source }}\nTitle: {{ $json.title }}\n\nContent: {{ $json.contentSnippet }}"
+      },
+      "id": "b1b2c3d4-0005-4000-8000-000000000005",
+      "name": "Basic LLM Chain",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        1200,
+        240
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "model": "openrouter/free"
+      },
+      "id": "b1b2c3d4-0006-4000-8000-000000000006",
+      "name": "OpenRouter Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        440
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "sheet",
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1RV3JWWTt68Nacrnu6cIKI8zmT8dQlgScsQbeqzFfXRw",
+          "mode": "list",
+          "cachedResultName": "RSS Summaries"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Sheet1",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Source": "={{ $('Format and Filter').item.json.source }}",
+            "Title": "={{ $('Format and Filter').item.json.title }}",
+            "Link": "={{ $('Format and Filter').item.json.link }}",
+            "Published": "={{ $('Format and Filter').item.json.pubDate }}",
+            "Summary": "={{ $json.text }}"
+          },
+          "matchingColumns": [
+            "Link"
+          ],
+          "schema": [
+            {
+              "id": "Source",
+              "displayName": "Source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Title",
+              "displayName": "Title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Link",
+              "displayName": "Link",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Published",
+              "displayName": "Published",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Summary",
+              "displayName": "Summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        }
+      },
+      "id": "b1b2c3d4-0007-4000-8000-000000000007",
+      "name": "Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1440,
+        240
+      ]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Feed Sources",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Feed Sources": {
+      "main": [
+        [
+          {
+            "node": "RSS Read",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RSS Read": {
+      "main": [
+        [
+          {
+            "node": "Format and Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format and Filter": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

@@ -20,10 +20,10 @@ Follow these exact steps in order to attach your credentials and connect the des
 ### Part A: Create the Google Sheet
 1. Open [sheets.google.com](https://sheets.google.com) and create a new blank spreadsheet.
 2. Rename the spreadsheet to exactly: `RSS Summaries`.
-3. In **Row 1**, type these exact four column headers:
-   | Column A | Column B | Column C | Column D |
-   | :--- | :--- | :--- | :--- |
-   | **Title** | **Link** | **Published** | **Summary** |
+3. In **Row 1**, type these exact five column headers:
+   | Column A | Column B | Column C | Column D | Column E |
+   | :--- | :--- | :--- | :--- | :--- |
+   | **Source** | **Title** | **Link** | **Published** | **Summary** |
 4. Ensure the default sheet tab at the bottom is named `Sheet1`.
 
 ---
@@ -79,9 +79,10 @@ Open your n8n workspace at [http://localhost:5678](http://localhost:5678).
    - Under **Document**, select **From list** and choose `RSS Summaries`.
    - Under **Sheet**, select `Sheet1`.
    - Confirm the column mappings match:
-     - `Title` → `={{ $('RSS Read').item.json.title }}`
-     - `Link` → `={{ $('RSS Read').item.json.link }}`
-     - `Published` → `={{ $('RSS Read').item.json.pubDate }}`
+     - `Source` → `={{ $('Format and Filter').item.json.source }}` (or `"BBC Tech"`)
+     - `Title` → `={{ $('Format and Filter').item.json.title }}`
+     - `Link` → `={{ $('Format and Filter').item.json.link }}`
+     - `Published` → `={{ $('Format and Filter').item.json.pubDate }}`
      - `Summary` → `={{ $json.text }}`
 4. Press `Cmd + S` (macOS) or `Ctrl + S` to save the workflow.
 

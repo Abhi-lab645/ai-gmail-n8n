@@ -2,12 +2,7 @@
 set -euo pipefail
 
 CONTAINER_NAME="${1:-n8n}"
-WORKFLOW_FILE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/workflows/rss-summarizer.json"
-
-if [ ! -f "$WORKFLOW_FILE" ]; then
-  echo "Error: Workflow file not found at $WORKFLOW_FILE"
-  exit 1
-fi
+WORKFLOW_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/workflows"
 
 echo "==> Verifying n8n container '$CONTAINER_NAME' is running..."
 if ! docker ps --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
@@ -15,13 +10,19 @@ if ! docker ps --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
   exit 1
 fi
 
-echo "==> Copying workflow to container..."
-docker cp "$WORKFLOW_FILE" "${CONTAINER_NAME}:/tmp/rss-summarizer.json"
+echo "==> Copying workflow files to container..."
+for wf in "$WORKFLOW_DIR"/*.json; do
+  filename="$(basename "$wf")"
+  echo "  - Copying $filename"
+  docker cp "$wf" "${CONTAINER_NAME}:/tmp/${filename}"
+  echo "  - Importing $filename into n8n..."
+  docker exec "$CONTAINER_NAME" n8n import:workflow --input="/tmp/${filename}"
+done
 
-echo "==> Importing workflow into n8n..."
-docker exec "$CONTAINER_NAME" n8n import:workflow --input=/tmp/rss-summarizer.json
-
-echo "==> Current workflows in n8n:"
+echo ""
+echo "==> Active workflows in n8n:"
 docker exec "$CONTAINER_NAME" n8n list:workflow
 
-echo "==> Workflow imported successfully!"
+echo ""
+echo "==> All workflows imported successfully!"
+

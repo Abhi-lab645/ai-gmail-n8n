@@ -97,6 +97,7 @@
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
+            "Source": "BBC Tech",
             "Title": "={{ $('RSS Read').item.json.title }}",
             "Link": "={{ $('RSS Read').item.json.link }}",
             "Published": "={{ $('RSS Read').item.json.pubDate }}",
@@ -106,6 +107,15 @@
             "Link"
           ],
           "schema": [
+            {
+              "id": "Source",
+              "displayName": "Source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
             {
               "id": "Title",
               "displayName": "Title",

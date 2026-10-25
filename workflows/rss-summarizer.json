@@ -78,7 +78,7 @@
     {
       "parameters": {
         "resource": "sheet",
-        "operation": "append",
+        "operation": "appendOrUpdate",
         "documentId": {
           "__rl": true,
           "value": "1RV3JWWTt68Nacrnu6cIKI8zmT8dQlgScsQbeqzFfXRw",
@@ -93,13 +93,25 @@
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
+            "Source": "BBC Tech",
             "Title": "={{ $('RSS Read').item.json.title }}",
             "Link": "={{ $('RSS Read').item.json.link }}",
             "Published": "={{ $('RSS Read').item.json.pubDate }}",
             "Summary": "={{ $json.text }}"
           },
-          "matchingColumns": [],
+          "matchingColumns": [
+            "Link"
+          ],
           "schema": [
+            {
+              "id": "Source",
+              "displayName": "Source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
             {
               "id": "Title",
               "displayName": "Title",

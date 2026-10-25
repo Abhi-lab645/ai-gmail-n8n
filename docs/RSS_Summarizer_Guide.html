@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>n8n Multi-Source RSS AI Summarizer - Production Deployment Guide</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+    @page {
+      size: A4;
+      margin: 18mm 15mm 18mm 15mm;
+      @bottom-right {
+        content: counter(page);
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: #1e293b;
+      background-color: #ffffff;
+      line-height: 1.55;
+      font-size: 10pt;
+    }
+
+    .header-banner {
+      background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%);
+      color: white;
+      padding: 24px 28px;
+      border-radius: 12px;
+      margin-bottom: 24px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .header-badge {
+      display: inline-block;
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(8px);
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 8pt;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 10px;
+      color: #cbd5e1;
+    }
+
+    h1 {
+      font-size: 20pt;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      line-height: 1.2;
+      margin-bottom: 8px;
+    }
+
+    .header-subtitle {
+      font-size: 10.5pt;
+      color: #94a3b8;
+      font-weight: 400;
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-top: 18px;
+      padding-top: 14px;
+      border-top: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .meta-item {
+      font-size: 8pt;
+    }
+    .meta-label {
+      color: #94a3b8;
+      font-size: 7pt;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 2px;
+    }
+    .meta-val {
+      font-weight: 600;
+      color: #f8fafc;
+    }
+
+    h2 {
+      font-size: 13pt;
+      font-weight: 700;
+      color: #0f172a;
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: 6px;
+      margin-top: 22px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      page-break-after: avoid;
+    }
+
+    h3 {
+      font-size: 10.5pt;
+      font-weight: 600;
+      color: #334155;
+      margin-top: 14px;
+      margin-bottom: 6px;
+      page-break-after: avoid;
+    }
+
+    p {
+      margin-bottom: 10px;
+      color: #334155;
+    }
+
+    .pipeline-container {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 14px;
+      margin: 14px 0;
+      page-break-inside: avoid;
+    }
+
+    .pipeline-nodes {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .p-node {
+      flex: 1;
+      background: white;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 10px 8px;
+      text-align: center;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    .p-node.highlight {
+      border-color: #6366f1;
+      background: #eef2ff;
+    }
+
+    .p-node-title {
+      font-size: 8pt;
+      font-weight: 700;
+      color: #1e293b;
+      margin-bottom: 2px;
+    }
+
+    .p-node-desc {
+      font-size: 6.5pt;
+      color: #64748b;
+    }
+
+    .arrow {
+      color: #94a3b8;
+      font-weight: bold;
+      font-size: 11pt;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0;
+      font-size: 8.5pt;
+      page-break-inside: avoid;
+    }
+
+    th {
+      background-color: #f1f5f9;
+      color: #1e293b;
+      font-weight: 600;
+      text-align: left;
+      padding: 8px 10px;
+      border: 1px solid #cbd5e1;
+    }
+
+    td {
+      padding: 8px 10px;
+      border: 1px solid #e2e8f0;
+      color: #334155;
+    }
+
+    tr:nth-child(even) td {
+      background-color: #f8fafc;
+    }
+
+    code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 8pt;
+      background-color: #f1f5f9;
+      padding: 2px 5px;
+      border-radius: 4px;
+      color: #0f172a;
+      border: 1px solid #e2e8f0;
+    }
+
+    pre {
+      background-color: #0f172a;
+      color: #f8fafc;
+      padding: 12px 14px;
+      border-radius: 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 8pt;
+      line-height: 1.45;
+      overflow-x: auto;
+      margin: 10px 0;
+      page-break-inside: avoid;
+    }
+
+    pre code {
+      background: transparent;
+      border: none;
+      color: inherit;
+      padding: 0;
+    }
+
+    .callout {
+      border-left: 4px solid #6366f1;
+      background-color: #f5f3ff;
+      padding: 10px 14px;
+      border-radius: 0 8px 8px 0;
+      margin: 12px 0;
+      font-size: 8.5pt;
+      page-break-inside: avoid;
+    }
+
+    .callout-title {
+      font-weight: 700;
+      color: #4338ca;
+      margin-bottom: 3px;
+    }
+
+    .page-break {
+      page-break-before: always;
+    }
+
+    .badge-source {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 7pt;
+      font-weight: 600;
+    }
+    .badge-bbc { background: #fee2e2; color: #991b1b; }
+    .badge-tc { background: #dcfce7; color: #166534; }
+    .badge-verge { background: #e0e7ff; color: #3730a3; }
+    .badge-wired { background: #fef3c7; color: #92400e; }
+  </style>
+</head>
+<body>
+
+  <!-- PAGE 1 -->
+  <div class="header-banner">
+    <div class="header-badge">Automated AI Engineering Guide</div>
+    <h1>n8n Multi-Source RSS AI Summarizer</h1>
+    <div class="header-subtitle">Continuous Ingestion from BBC Tech, TechCrunch, The Verge & Wired into Google Sheets</div>
+    <div class="meta-grid">
+      <div class="meta-item"><div class="meta-label">Architecture</div><div class="meta-val">Docker Containerized</div></div>
+      <div class="meta-item"><div class="meta-label">n8n Engine</div><div class="meta-val">v2.44.6 (Port 5678)</div></div>
+      <div class="meta-item"><div class="meta-label">AI Inference</div><div class="meta-val">OpenRouter (Free Tier)</div></div>
+      <div class="meta-item"><div class="meta-label">Storage Target</div><div class="meta-val">Google Sheets OAuth2</div></div>
+    </div>
+  </div>
+
+  <h2>1. Multi-Source Pipeline Architecture</h2>
+  <p>The workflow solves the single-feed limitation (where polling only BBC Tech repeatedly yielded the same 5 cached articles). It ingests 4 top-tier tech publications, balances 2 articles per publisher, produces structured 2-sentence summaries, and prevents duplicate records via URL-based upserting.</p>
+
+  <div class="pipeline-container">
+    <div class="pipeline-nodes">
+      <div class="p-node">
+        <div class="p-node-title">1. Trigger</div>
+        <div class="p-node-desc">Manual / Daily 08:00</div>
+      </div>
+      <div class="arrow">&rarr;</div>
+      <div class="p-node">
+        <div class="p-node-title">2. Feed Sources</div>
+        <div class="p-node-desc">BBC, TC, Verge, Wired</div>
+      </div>
+      <div class="arrow">&rarr;</div>
+      <div class="p-node">
+        <div class="p-node-title">3. RSS Read</div>
+        <div class="p-node-desc">Parse XML Streams</div>
+      </div>
+      <div class="arrow">&rarr;</div>
+      <div class="p-node highlight">
+        <div class="p-node-title">4. Format & Filter</div>
+        <div class="p-node-desc">2 / Outlet, Clean HTML</div>
+      </div>
+      <div class="arrow">&rarr;</div>
+      <div class="p-node">
+        <div class="p-node-title">5. Basic LLM</div>
+        <div class="p-node-desc">OpenRouter Free</div>
+      </div>
+      <div class="arrow">&rarr;</div>
+      <div class="p-node highlight">
+        <div class="p-node-title">6. Sheets Upsert</div>
+        <div class="p-node-desc">appendOrUpdate (Link)</div>
+      </div>
+    </div>
+  </div>
+
+  <h2>2. Workflows Included in Repository</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Workflow Filename</th>
+        <th>Pipeline Type</th>
+        <th>Trigger</th>
+        <th>Deduplication</th>
+        <th>Target Columns</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>workflows/rss-summarizer-multi.json</code></td>
+        <td><strong>Multi-Source (4 Feeds)</strong></td>
+        <td>Manual Click</td>
+        <td>Yes (<code>appendOrUpdate</code> on Link)</td>
+        <td>Source, Title, Link, Published, Summary</td>
+      </tr>
+      <tr>
+        <td><code>workflows/rss-summarizer-multi-scheduled.json</code></td>
+        <td><strong>Multi-Source (4 Feeds)</strong></td>
+        <td>Schedule (Daily 08:00)</td>
+        <td>Yes (<code>appendOrUpdate</code> on Link)</td>
+        <td>Source, Title, Link, Published, Summary</td>
+      </tr>
+      <tr>
+        <td><code>workflows/rss-summarizer.json</code></td>
+        <td>Single-Source (BBC Tech)</td>
+        <td>Manual Click</td>
+        <td>Yes (<code>appendOrUpdate</code> on Link)</td>
+        <td>Source, Title, Link, Published, Summary</td>
+      </tr>
+      <tr>
+        <td><code>workflows/rss-summarizer-scheduled.json</code></td>
+        <td>Single-Source (BBC Tech)</td>
+        <td>Schedule (Daily 08:00)</td>
+        <td>Yes (<code>appendOrUpdate</code> on Link)</td>
+        <td>Source, Title, Link, Published, Summary</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>3. Docker Deployment Instructions</h2>
+  <p>n8n runs containerized with persistent state in Docker volume <code>n8n-class_n8n_data</code>.</p>
+  
+  <h3>Docker Compose (Recommended)</h3>
+  <pre><code># Start n8n in detached mode
+docker compose up -d
+
+# Verify container is healthy
+docker compose ps
+
+# Import all workflows into container
+chmod +x ./scripts/import-workflow.sh
+./scripts/import-workflow.sh</code></pre>
+
+  <div class="callout">
+    <div class="callout-title">Persistent Storage Architecture</div>
+    All n8n credentials, SQLite databases, and workflow definitions reside in the external Docker volume <code>n8n-class_n8n_data</code> mounted at <code>/home/node/.n8n</code>. Updating, stopping, or restarting the Docker image preserves all configurations.
+  </div>
+
+  <!-- PAGE 2 -->
+  <div class="page-break"></div>
+
+  <h2>4. Authentication & Credentials Setup</h2>
+
+  <h3>A. OpenRouter AI Setup</h3>
+  <p>1. Sign in to <a href="https://openrouter.ai/keys">openrouter.ai/keys</a> and generate a free API key.<br>
+  2. In n8n, navigate to <strong>Credentials &rarr; Add Credential &rarr; OpenRouter API</strong> and paste the key.<br>
+  3. The workflow uses model <code>openrouter/free</code>, which routes to high-quality free community models.</p>
+
+  <h3>B. Google Cloud OAuth2 Setup</h3>
+  <p>To enable n8n to append and update records in Google Sheets:</p>
+  <ol style="margin-left: 20px; font-size: 8.5pt; color: #334155;">
+    <li><strong>Enable Google APIs</strong>: In Google Cloud Console, enable both <strong>Google Sheets API</strong> and <strong>Google Drive API</strong>.</li>
+    <li><strong>OAuth Consent Screen</strong>:
+      <ul>
+        <li>User Type: <strong>External</strong>.</li>
+        <li>Under <strong>Test users</strong>, click <strong>+ Add Users</strong> and input your Google email. (Failing to do this triggers <code>Error 403: access_denied</code>).</li>
+      </ul>
+    </li>
+    <li><strong>Create OAuth Credentials</strong>:
+      <ul>
+        <li>Application type: <strong>Web application</strong>.</li>
+        <li>Authorized Redirect URI: <code>http://localhost:5678/rest/oauth2-credential/callback</code>.</li>
+      </ul>
+    </li>
+    <li><strong>Google Sheet Destination</strong>: Create a sheet titled <strong><code>RSS Summaries</code></strong> with row 1 headers: <code>Source | Title | Link | Published | Summary</code>.</li>
+  </ol>
+
+  <h2>5. Live Verification & Google Sheets Data</h2>
+  <p>The multi-source workflow was executed end-to-end via headless container CLI (<code>docker exec -e N8N_RUNNERS_BROKER_PORT=5689 n8n n8n execute --id=shY8hRfrlFmK2Suq</code>). Verified sample rows logged in Google Sheets:</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 15%;">Source</th>
+        <th style="width: 35%;">Article Title</th>
+        <th style="width: 50%;">AI Generated Plain-English Summary</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="badge-source badge-bbc">BBC Tech</span></td>
+        <td>UK to invest £100m in 'world first' AI Biosecurity Lab</td>
+        <td>The UK government plans to spend £100 million on a new laboratory that uses artificial intelligence to protect against biological threats.</td>
+      </tr>
+      <tr>
+        <td><span class="badge-source badge-tc">TechCrunch</span></td>
+        <td>AI delivers ‘zero financial payoff’ to most companies</td>
+        <td>Despite massive investment and hype, artificial intelligence has provided no financial benefit to most US companies outside tech.</td>
+      </tr>
+      <tr>
+        <td><span class="badge-source badge-verge">The Verge</span></td>
+        <td>Now you can watch Instagram Reels on your Apple TV</td>
+        <td>Instagram has quietly launched its dedicated TV app on Apple TV, bringing Reels and live streams directly to living room displays.</td>
+      </tr>
+      <tr>
+        <td><span class="badge-source badge-wired">Wired</span></td>
+        <td>Scientists Trapped an Antimatter Particle for Months</td>
+        <td>Researchers successfully contained an antimatter particle for months, enabling breakthroughs in understanding why matter dominates the universe.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>6. Production Troubleshooting Matrix</h2>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 30%;">Symptom</th>
+        <th style="width: 35%;">Root Cause</th>
+        <th style="width: 35%;">Resolution</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Single feed fetches same 5 items</strong></td>
+        <td>Feed has not updated since last run; static Limit takes top 5.</td>
+        <td>Use <code>rss-summarizer-multi.json</code>. It checks 4 sources and deduplicates via <code>appendOrUpdate</code>.</td>
+      </tr>
+      <tr>
+        <td><strong>Error 403: access_denied</strong></td>
+        <td>Google OAuth in Testing mode without email in Test Users.</td>
+        <td>Add Google account in Google Cloud Console &rarr; OAuth consent screen &rarr; Test users.</td>
+      </tr>
+      <tr>
+        <td><strong>Google Drive / Sheets API Disabled</strong></td>
+        <td>APIs not activated in Google Cloud project.</td>
+        <td>Enable <strong>Google Sheets API</strong> and <strong>Google Drive API</strong> in Google Cloud Library.</td>
+      </tr>
+      <tr>
+        <td><strong>columns.schema required</strong></td>
+        <td>n8n v4.4+ requires column schema metadata in defineBelow mode.</td>
+        <td>All workflow files in <code>workflows/</code> include the full schema definitions matching the sheet.</td>
+      </tr>
+      <tr>
+        <td><strong>OpenRouter 429 Rate Limit</strong></td>
+        <td>High traffic on free model tier.</td>
+        <td>Workflow nodes include 3 automated retries with 2000 ms backoff.</td>
+      </tr>
+    </tbody>
+  </table>
+
+</body>
+</html>
